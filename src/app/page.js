@@ -11,6 +11,7 @@ export default function Facturador() {
   const [selectedProducto, setSelectedProducto] = useState(null);
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
   const [cantidad, setCantidad] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (view === "clientes") fetchClientes();
@@ -71,12 +72,15 @@ export default function Facturador() {
       };
 
       try {
+        setLoading(true);
         await axios.post("http://localhost:8080/api/v1/compras", compra);
         alert("Compra realizada con éxito");
         setProductosSeleccionados([]);
         setSelectedCliente(null);
       } catch (error) {
         console.error("Error realizando la compra:", error);
+      } finally {
+        setLoading(false);
       }
     } else {
       alert("Selecciona un cliente y al menos un producto.");
@@ -226,8 +230,9 @@ export default function Facturador() {
             <button
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-4"
               onClick={realizarCompra}
+              disabled={loading}
             >
-              Realizar Compra
+              {loading ? "Realizando Compra..." : "Realizar Compra"}
             </button>
           </div>
         )}
