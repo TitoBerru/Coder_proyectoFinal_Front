@@ -1,101 +1,237 @@
-import Image from "next/image";
+'use client'
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-export default function Home() {
+export default function Facturador() {
+  const [view, setView] = useState("home"); // Tracks current view
+  const [clientes, setClientes] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [facturas, setFacturas] = useState([]);
+  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [selectedProducto, setSelectedProducto] = useState(null);
+  const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+  const [cantidad, setCantidad] = useState(1);
+
+  useEffect(() => {
+    if (view === "clientes") fetchClientes();
+    if (view === "productos") fetchProductos();
+    if (view === "facturas") fetchFacturas();
+    if (view === "comprar" && clientes.length === 0) fetchClientes();
+  }, [view]);
+
+  const fetchClientes = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/v1/clientes");
+      setClientes(response.data);
+    } catch (error) {
+      console.error("Error fetching clientes:", error);
+    }
+  };
+
+  const fetchProductos = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/v1/productos");
+      setProductos(response.data);
+    } catch (error) {
+      console.error("Error fetching productos:", error);
+    }
+  };
+
+  const fetchFacturas = async () => {
+    try {
+      const response = await axios.get("http://localhost:8080/api/v1/facturas");
+      setFacturas(response.data);
+    } catch (error) {
+      console.error("Error fetching facturas:", error);
+    }
+  };
+
+  const agregarProducto = () => {
+    if (selectedProducto && cantidad > 0) {
+      const producto = productos.find((p) => p.id === parseInt(selectedProducto));
+      setProductosSeleccionados([
+        ...productosSeleccionados,
+        { ...producto, cantidad },
+      ]);
+      setSelectedProducto(null);
+      setCantidad(1);
+    }
+  };
+
+  const realizarCompra = async () => {
+    if (selectedCliente && productosSeleccionados.length > 0) {
+      const detalles = productosSeleccionados.map((producto) => ({
+        productoId: producto.id,
+        cantidad: producto.cantidad,
+      }));
+
+      const compra = {
+        clienteId: parseInt(selectedCliente),
+        detalles,
+      };
+
+      try {
+        await axios.post("http://localhost:8080/api/v1/compras", compra);
+        alert("Compra realizada con éxito");
+        setProductosSeleccionados([]);
+        setSelectedCliente(null);
+      } catch (error) {
+        console.error("Error realizando la compra:", error);
+      }
+    } else {
+      alert("Selecciona un cliente y al menos un producto.");
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <nav className="w-1/4 bg-gray-800 text-white p-4">
+        <h1 className="text-2xl font-bold mb-6">Facturador</h1>
+        <ul>
+          <li className="mb-4">
+            <button className="w-full text-left" onClick={() => setView("home")}>Inicio</button>
           </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+          <li className="mb-4">
+            <button className="w-full text-left" onClick={() => setView("clientes")}>Clientes</button>
+          </li>
+          <li className="mb-4">
+            <button className="w-full text-left" onClick={() => setView("productos")}>Productos</button>
+          </li>
+          <li className="mb-4">
+            <button className="w-full text-left" onClick={() => setView("facturas")}>Facturas</button>
+          </li>
+          <li className="mb-4">
+            <button className="w-full text-left" onClick={() => setView("comprar")}>Comprar</button>
+          </li>
+        </ul>
+      </nav>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+      {/* Main Content */}
+      <main className="w-3/4 p-8">
+        {view === "home" && (
+          <div>
+            <h2 className="text-3xl font-bold">Bienvenidos al Facturador</h2>
+            <p className="mt-4 text-lg">Proyecto Final de CoderHouse - Hector Berrutti</p>
+            <p className="mt-4 text-lg">Selecciona una opción en el menú para comenzar.</p>
+          </div>
+        )}
+
+        {view === "clientes" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Clientes</h2>
+            {clientes.length === 0 ? (
+              <p>Cargando clientes...</p>
+            ) : (
+              <ul className="border rounded p-4">
+                {clientes.map((cliente) => (
+                  <li key={cliente.id} className="mb-2">
+                    {cliente.nombre} {cliente.apellido} - DNI: {cliente.dni}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {view === "productos" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Productos</h2>
+            {productos.length === 0 ? (
+              <p>Cargando productos...</p>
+            ) : (
+              <ul className="border rounded p-4">
+                {productos.map((producto) => (
+                  <li key={producto.id} className="mb-2">
+                    {producto.nombreProducto} - Precio: ${producto.precioVentaProducto}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {view === "facturas" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Facturas</h2>
+            {facturas.length === 0 ? (
+              <p>Cargando facturas...</p>
+            ) : (
+              <ul className="border rounded p-4">
+                {facturas.map((factura) => (
+                  <li key={factura.id} className="mb-2">
+                    Factura #{factura.id} - Cliente: {factura.nombreCliente} {factura.apellidoCliente} - Total: ${factura.totalFactura}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {view === "comprar" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Realizar Compra</h2>
+            <div className="mb-4">
+              <label className="block mb-2">Seleccionar Cliente:</label>
+              <select
+                className="border rounded p-2 w-full bg-gray-100 text-gray-900"
+                onChange={(e) => setSelectedCliente(e.target.value)}
+              >
+                <option value="">Seleccionar...</option>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nombre} {cliente.apellido}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block mb-2">Seleccionar Producto:</label>
+              <select
+                className="border rounded p-2 w-full bg-gray-100 text-gray-900"
+                onChange={(e) => setSelectedProducto(e.target.value)}
+              >
+                <option value="">Seleccionar...</option>
+                {productos.map((producto) => (
+                  <option key={producto.id} value={producto.id}>
+                    {producto.nombreProducto}
+                  </option>
+                ))}
+              </select>
+              <label className="block mt-2">Cantidad:</label>
+              <input
+                type="number"
+                className="border rounded p-2 w-full bg-gray-100 text-gray-900"
+                value={cantidad}
+                min="1"
+                onChange={(e) => setCantidad(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              onClick={agregarProducto}
+            >
+              Agregar Producto
+            </button>
+            <div className="mt-4">
+              <h3 className="text-xl font-bold mb-2">Productos Seleccionados:</h3>
+              <ul className="border rounded p-4">
+                {productosSeleccionados.map((producto, index) => (
+                  <li key={index} className="mb-2">
+                    {producto.nombreProducto} - Cantidad: {producto.cantidad} - Precio: ${producto.precioVentaProducto}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-4"
+              onClick={realizarCompra}
+            >
+              Realizar Compra
+            </button>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
